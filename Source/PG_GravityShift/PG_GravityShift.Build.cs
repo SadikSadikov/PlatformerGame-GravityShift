@@ -8,7 +8,8 @@ public class PG_GravityShift : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "MoviePlayer", "Slate", "SlateCore", "EnhancedInput",
+			"GameMenuBuilder" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
