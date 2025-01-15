@@ -127,6 +127,18 @@ private:
 	/* Height of big obstacle */
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	float ClimbOverBigHeight;
+
+	/* Animation for Climbing to ledge */
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	UAnimMontage* ClimbLedgeMontage;
+
+	/* Root offset in climb ledge animation */
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	FVector ClimbLedgeRootOffset;
+
+	/* Grab point offset along X axis in climb ledge animation */
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	float ClimbLedgeGrabOffsetX;
 	
 	/* Mesh translation user for position adjustments */
 	FVector AnimPositionAdjustment;
@@ -150,6 +162,9 @@ private:
 	/* Climb marker ( or to be exact its mesh component - the movable part) we are climbing to */
 	UPROPERTY()
 	UStaticMeshComponent* ClimbToMarker;
+
+	/* Location of Climb Marker we are climbing to */
+	FVector ClimbToMarkerLocation;
 
 	/* Position Pawn in ledge and play animation with position adjustment */
 	void ClimbToLedge(const AGShiftClimbMarker* MoveToMarker);

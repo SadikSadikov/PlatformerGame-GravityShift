@@ -176,6 +176,38 @@ void AGShiftCharacter::MoveBlockedBy(const FHitResult& Impact)
 
 void AGShiftCharacter::ClimbToLedge(const AGShiftClimbMarker* MoveToMarker)
 {
+	print("Climbing to Ledge");
+	
+	ClimbToMarker = MoveToMarker ? MoveToMarker->FindComponentByClass<UStaticMeshComponent>() : nullptr;
+	ClimbToMarkerLocation = ClimbToMarker ? ClimbToMarker->GetComponentLocation() : FVector::ZeroVector;
+
+	// Place on top left corner of marker, but preserve current Y coordinate
+	const FBox MarkerBox = MoveToMarker->GetMesh()->Bounds.GetBox();
+	const FVector DesiredPosition(MarkerBox.Min.X, GetActorLocation().Y, MarkerBox.Max.Z);
+
+	// Climbing to Ledge:
+	// - Pawn is placed on top of ledge (using ClimbLedgeGrabOffsetX to offset from grab point) immediately
+	// - AnimPositionAdjustment modifiers mesh relative location to smooth transition
+	//   (Mesh starts roughly at the same position, additional offset quickly decreased to zero in Tick)
+
+	const FVector StartPosition = GetActorLocation();
+	FVector AdjustedPosition = DesiredPosition;
+	AdjustedPosition.X += (ClimbLedgeGrabOffsetX * GetMesh()->GetRelativeScale3D().X) - GetBaseTranslationOffset().X;
+	AdjustedPosition.Z += GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+	TeleportTo(AdjustedPosition, GetActorRotation(), false, true);
+
+	AnimPositionAdjustment = StartPosition - (GetActorLocation() - (ClimbLedgeRootOffset * GetMesh()->GetRelativeScale3D()));
+	GetMesh()->SetRelativeLocation(GetBaseTranslationOffset() + AnimPositionAdjustment);
+
+	if (ClimbLedgeMontage)
+	{
+		const float Duration = PlayAnimMontage(ClimbLedgeMontage);
+		GetWorldTimerManager().SetTimer(TimerHandle_ResumeMovement,
+			this, &AGShiftCharacter::ResumeMovement, Duration - 0.1f, false);
+	}
+	
+	
 }
 
 void AGShiftCharacter::ClimbOverObstacle()
