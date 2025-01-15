@@ -182,7 +182,48 @@ void AGShiftCharacter::ClimbOverObstacle()
 {
 	print("Playing Climb over obstacle Animation");
 
-	
+	// Climbing over obstacle:
+	// - There are three animations matching with three types of predefined obstacle heights
+	// - Pawn is moved using root motion, ending up on top of obstacle as animation ends
+
+	const FVector ForwardDir = GetActorForwardVector();
+	const FVector TraceStart = GetActorLocation() + ForwardDir * 150.f + FVector(0.f, 0.f, 1.f) *
+	(GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 150.f);
+
+	const FVector TraceEnd = TraceStart + FVector(0.f, 0.f, -1.f) * 500.f;
+
+	FCollisionQueryParams TraceParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true);
+	FHitResult Hit;
+	GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Pawn, TraceParams);
+
+	if (Hit.bBlockingHit)
+	{
+		const FVector DestPosition = Hit.ImpactPoint + FVector(0.f, 0.f, GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+		const float ZDiff = DestPosition.Z - GetActorLocation().Z;
+		UE_LOG(LogGS, Log, TEXT("Climb over obstacle, Z difference: %f (%s)"), ZDiff,
+			(ZDiff < ClimbOverMidHeight) ? TEXT("Small") : TEXT("Big"));
+
+		UAnimMontage* Montage = (ZDiff < ClimbOverMidHeight) ? ClimbOverSmallMontage :
+			(ZDiff < ClimbOverBigHeight) ? ClimbOverMidMontage : ClimbOverBigMontage;
+
+		// Set flaying mode since it needs z changes. If Walking or Falling, we won't be able to apply Z Changes
+		// This Gets reset in the ResumeMovement
+
+		if (Montage)
+		{
+			GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+			SetActorEnableCollision(false);
+			const float Duration = PlayAnimMontage(Montage);
+			GetWorldTimerManager().SetTimer(TimerHandle_ResumeMovement, this,
+				&AGShiftCharacter::ResumeMovement, Duration - 0.1f, false);
+		}
+
+	}
+	else
+	{
+		// Shouldn't happen
+		ResumeMovement();
+	}
 	
 }
 
