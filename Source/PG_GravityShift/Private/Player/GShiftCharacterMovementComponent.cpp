@@ -24,6 +24,7 @@ UGShiftCharacterMovementComponent::UGShiftCharacterMovementComponent(const FObje
 	MaxSlideSpeed = MaxWalkSpeed + MinSlideSpeed;
 
 	ModSpeedObstacleHit = 0.f;
+	ModSpeedLedgeCrab = 0.8f;
 }
 
 void UGShiftCharacterMovementComponent::StartFalling(int32 Iterations, float remainingTime, float timeTick,
@@ -43,11 +44,20 @@ void UGShiftCharacterMovementComponent::PauseMovementForObstacleHit()
 	print("Hitting a Obstacle");
 	
 	SaveSpeed = Velocity.Size() * ModSpeedObstacleHit;
-	
 	StopMovementImmediately();
 	DisableMovement();
 	TryToEndSlide();
 	
+}
+
+void UGShiftCharacterMovementComponent::PauseMovementForLedgeCrab()
+{
+	print("Hitting a Ledge Crab");
+	
+	SaveSpeed = Velocity.Size() * ModSpeedLedgeCrab;
+	StopMovementImmediately();
+	DisableMovement();
+	TryToEndSlide();
 }
 
 void UGShiftCharacterMovementComponent::RestoreMovement()

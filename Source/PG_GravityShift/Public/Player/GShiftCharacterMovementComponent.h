@@ -24,6 +24,9 @@ public:
 	/* Stop Movement and save current speed with obstacle modifier */
 	void PauseMovementForObstacleHit();
 
+	/* Stop Movement and save current speed with ledge crab modifier */
+	void PauseMovementForLedgeCrab();
+
 	/* Restore movement and saved speed */
 	void RestoreMovement();
 	
@@ -64,7 +67,12 @@ protected:
 private:
 
 	/* Speed multiplayer after hitting obstacle */
+	UPROPERTY(EditDefaultsOnly, Category = "Config")
 	float ModSpeedObstacleHit;
+
+	/* Speed multiplayer after ledge grab */
+	UPROPERTY(EditDefaultsOnly, Category = "Config")
+	float ModSpeedLedgeCrab;
 
 	/* Value by which speed wil be reduced during slide */
 	UPROPERTY(EditDefaultsOnly, Category = "Config")

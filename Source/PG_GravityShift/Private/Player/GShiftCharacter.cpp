@@ -5,7 +5,8 @@
 #include "Player/GShiftCharacterMovementComponent.h"
 #include "Game/GShiftGameModeBase.h"
 #include "PG_GravityShift/PG_GravityShift.h"
-#include "Animation/AnimInstance.h"
+#include "Actor/GShiftClimbMarker.h"
+#include "Components/CapsuleComponent.h"
 
 #include "PG_GravityShift/PrintString.h"
 
@@ -131,14 +132,14 @@ void AGShiftCharacter::MoveBlockedBy(const FHitResult& Impact)
 {
 	const float ForwardDot = FVector::DotProduct(Impact.Normal, FVector::ForwardVector);
 
-	/*if (GetCharacterMovement()->MovementMode != EMovementMode::MOVE_None)
+	if (GetCharacterMovement()->MovementMode != EMovementMode::MOVE_None)
 	{
 		UE_LOG(LogGS, Log, TEXT("Collision with %s, normal=(%f, %f, %f), dot= %f, %s"),
 			*GetNameSafe(Impact.GetActor()),
 			Impact.Normal.X, Impact.Normal.Y, Impact.Normal.Z,
 			ForwardDot,
 			*GetCharacterMovement()->GetMovementName())
-	}*/
+	}
 
 	if (GetCharacterMovement()->MovementMode == MOVE_Walking && ForwardDot < -0.9f)
 	{
@@ -157,15 +158,32 @@ void AGShiftCharacter::MoveBlockedBy(const FHitResult& Impact)
 
 		MovComp->PauseMovementForObstacleHit();
 	}
-	// TODO:: Make Hitting obstacle in air
+	else if (GetCharacterMovement()->MovementMode == MOVE_Falling)
+	{
+		// If in midair: try climbing to hit marker
+		if (AGShiftClimbMarker* ClimbMarker = Cast<AGShiftClimbMarker>(Impact.GetActor()))
+		{
+			ClimbToLedge(ClimbMarker);
+		}
+		
+		UGShiftCharacterMovementComponent* MovComp = Cast<UGShiftCharacterMovementComponent>(GetCharacterMovement());
+		MovComp->PauseMovementForLedgeCrab();
+		
+	}
 
 	
+}
+
+void AGShiftCharacter::ClimbToLedge(const AGShiftClimbMarker* MoveToMarker)
+{
 }
 
 void AGShiftCharacter::ClimbOverObstacle()
 {
 	print("Playing Climb over obstacle Animation");
-	ResumeMovement();
+
+	
+	
 }
 
 void AGShiftCharacter::ResumeMovement()
@@ -176,7 +194,7 @@ void AGShiftCharacter::ResumeMovement()
 	UGShiftCharacterMovementComponent* MovComp = Cast<UGShiftCharacterMovementComponent>(GetCharacterMovement());
 	MovComp->RestoreMovement();
 
-	// ClimbToMarker = nullptr
+	ClimbToMarker = nullptr;
 }
 
 void AGShiftCharacter::Landed(const FHitResult& Hit)

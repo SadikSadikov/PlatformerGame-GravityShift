@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "GShiftCharacter.generated.h"
 
+class AGShiftClimbMarker;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
@@ -103,6 +104,30 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	float MinSpeedForHittingWal;
 
+	/* Animation for climbing over small obstacle */
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	UAnimMontage* ClimbOverSmallMontage;
+
+	/* Height of small obstacle */
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	float ClimbOverSmallHeight;
+
+	/* Animation for climbing over mid-obstacle */
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	UAnimMontage* ClimbOverMidMontage;
+
+	/* Height of mid-obstacle */
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	float ClimbOverMidHeight;
+
+	/* Animation for climbing over big obstacle */
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	UAnimMontage* ClimbOverBigMontage;
+
+	/* Height of big obstacle */
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	float ClimbOverBigHeight;
+	
 	/* Mesh translation user for position adjustments */
 	FVector AnimPositionAdjustment;
 
@@ -119,6 +144,16 @@ private:
 	/* Handle for Efficient management of ClimbOverObstacle timer */
 	FTimerHandle TimerHandle_ClimbOverObstacle;
 
+	/* Handle for efficient management of ResumeMovement timer */
+	FTimerHandle TimerHandle_ResumeMovement;
+
+	/* Climb marker ( or to be exact its mesh component - the movable part) we are climbing to */
+	UPROPERTY()
+	UStaticMeshComponent* ClimbToMarker;
+
+	/* Position Pawn in ledge and play animation with position adjustment */
+	void ClimbToLedge(const AGShiftClimbMarker* MoveToMarker);
+	
 	/* Determine obstacle height type and play animation */
 	void ClimbOverObstacle();
 
