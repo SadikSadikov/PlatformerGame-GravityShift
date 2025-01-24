@@ -33,8 +33,10 @@ public:
 	/* Used to make Pawn jump : override to handle additional jump input functionality */
 	virtual void CheckJumpInput(float DeltaTime) override;
 
+	/* Start Jumping */
 	virtual void Jump() override;
 
+	/* Stop Jumping */
 	virtual void StopJumping() override;
 
 	/* Notify from movement about hitting an obstacle while running */
@@ -42,6 +44,9 @@ public:
 
 	/* Play end of round if game hase finished with character in midair */
 	virtual void Landed(const FHitResult& Hit) override;
+
+	/* Notify from movement about Movement Mode changed, used for Cayote time */
+	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode = 0) override;
 
 	/* Try playing end of round animation */
 	void OnRoundFinished();
@@ -175,11 +180,33 @@ private:
 	/* Restore Pawn's Movement state */
 	void ResumeMovement();
 
+	// Cayote Jump
+	bool bCanCoyoteJump = false;
+
+	bool bHasJumped = false;
+
+	void DisableCayoteJump();
+
+	FTimerHandle TimerHandle_CayoteTime;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Config")
+	float CayoteTimeDuration = 0.2f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	bool bWallSlide;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	bool bWallSlideRight;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Config")
+	float WallSlideInterpSpeed = 900.f;
+
 	
 
 
 
 
 };
+
 
 

@@ -7,6 +7,7 @@
 #include "PG_GravityShift/PG_GravityShift.h"
 #include "Actor/GShiftClimbMarker.h"
 #include "Components/CapsuleComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 #include "PG_GravityShift/PrintString.h"
 
@@ -15,6 +16,8 @@ AGShiftCharacter::AGShiftCharacter(const FObjectInitializer& ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	JumpMaxCount = 2;
+	JumpMaxHoldTime = 0.5;
 	MinSpeedForHittingWal = 200.f;
 	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 }
@@ -45,15 +48,69 @@ void AGShiftCharacter::PostInitializeComponents()
 
 void AGShiftCharacter::Tick(float DeltaTime)
 {
+	Super::Tick(DeltaTime);
+	
 	// Decrease anim position adjustment
 	if (!AnimPositionAdjustment.IsNearlyZero())
 	{
 		AnimPositionAdjustment = FMath::VInterpConstantTo(AnimPositionAdjustment, FVector::ZeroVector, DeltaTime, 400.f);
 		GetMesh()->SetRelativeLocation(GetBaseTranslationOffset() + AnimPositionAdjustment);
 	}
+	if (ClimbToMarker)
+	{
+		// Correction in case climb marker is moving
+		const FVector AdjustDelta = ClimbToMarker->GetComponentLocation() - ClimbToMarkerLocation;
+		if (!AdjustDelta.IsNearlyZero())
+		{
+			SetActorLocation(GetActorLocation() + AdjustDelta, false);
+			ClimbToMarkerLocation += AdjustDelta;
+		}
+	}
 
 	
-	Super::Tick(DeltaTime);
+	if (GetCharacterMovement()->IsFalling())
+	{
+		FHitResult HitForward;
+		TArray<AActor*> HitActors;
+		UKismetSystemLibrary::LineTraceSingle(this, GetActorLocation(), GetActorForwardVector() * 150.f + GetActorLocation(),
+			TraceTypeQuery1, false, HitActors, EDrawDebugTrace::None, HitForward, true);
+
+		if (HitForward.bBlockingHit)
+		{
+			bWallSlide = true;
+			bWallSlideRight = false;
+
+			GetCharacterMovement()->Velocity = FMath::VInterpConstantTo(GetCharacterMovement()->Velocity, FVector::ZeroVector,
+				DeltaTime, WallSlideInterpSpeed);
+
+		}
+		else
+		{
+			FHitResult HitBackward;
+			UKismetSystemLibrary::LineTraceSingle(this, GetActorLocation(), GetActorForwardVector() * -150.f + GetActorLocation(),
+				TraceTypeQuery1, false, HitActors, EDrawDebugTrace::None, HitBackward, true);
+
+			if (HitBackward.bBlockingHit)
+			{
+				bWallSlide = true;
+				bWallSlideRight = true;
+
+				GetCharacterMovement()->Velocity = FMath::VInterpConstantTo(GetCharacterMovement()->Velocity, FVector::ZeroVector,
+					DeltaTime, WallSlideInterpSpeed);
+
+			}
+			else
+			{
+				bWallSlide = false;
+			}
+	
+		}
+	}
+	else
+	{
+		bWallSlide = false;
+	}
+	
 
 }
 
@@ -83,6 +140,7 @@ void AGShiftCharacter::CheckJumpInput(float DeltaTime)
 {
 	if (bPressedJump)
 	{
+		bHasJumped = true;
 		UGShiftCharacterMovementComponent* MovementComponent = Cast<UGShiftCharacterMovementComponent>(GetCharacterMovement());
 		if (MovementComponent && MovementComponent->IsSliding())
 		{
@@ -100,6 +158,33 @@ void AGShiftCharacter::Jump()
 	print("Jump is Pressed");
 	Super::Jump();
 	
+	if (bCanCoyoteJump && !bHasJumped)
+	{
+		LaunchCharacter(FVector(0.f, 0.f, GetCharacterMovement()->JumpZVelocity),
+			false, false);
+
+		JumpCurrentCount++;
+	}
+
+	if (bWallSlide)
+	{
+		if (!bWallSlideRight)
+		{
+			// TODO:: Make names for 500.f and FVector(0.f, 0.f, 1000.f)
+			LaunchCharacter(GetActorForwardVector() * -500.f + FVector(0.f, 0.f, 1000.f), false, false);
+
+		}
+		else
+		{
+			LaunchCharacter(GetActorForwardVector() * 500.f + FVector(0.f, 0.f, 1000.f), false, false);
+
+		}
+	}
+	
+
+		
+	
+	
 }
 
 void AGShiftCharacter::StopJumping()
@@ -107,6 +192,30 @@ void AGShiftCharacter::StopJumping()
 	bPressedJump = false;
 	print("Jump is Released");
 	Super::StopJumping();
+
+
+}
+
+void AGShiftCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+	
+	if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_Falling)
+	{
+		bCanCoyoteJump = true;
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle_CayoteTime, this, &AGShiftCharacter::DisableCayoteJump,
+			CayoteTimeDuration, false);
+		
+		
+	}
+
+	
+}
+
+void AGShiftCharacter::DisableCayoteJump()
+{
+	bCanCoyoteJump = false;
+	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_CayoteTime);
 }
 
 void AGShiftCharacter::CharacterMove(const FInputActionValue& Value)
@@ -164,49 +273,15 @@ void AGShiftCharacter::MoveBlockedBy(const FHitResult& Impact)
 		if (AGShiftClimbMarker* ClimbMarker = Cast<AGShiftClimbMarker>(Impact.GetActor()))
 		{
 			ClimbToLedge(ClimbMarker);
+
+			UGShiftCharacterMovementComponent* MovComp = Cast<UGShiftCharacterMovementComponent>(GetCharacterMovement());
+			MovComp->PauseMovementForLedgeCrab();
 		}
 		
-		UGShiftCharacterMovementComponent* MovComp = Cast<UGShiftCharacterMovementComponent>(GetCharacterMovement());
-		MovComp->PauseMovementForLedgeCrab();
+		
 		
 	}
 
-	
-}
-
-void AGShiftCharacter::ClimbToLedge(const AGShiftClimbMarker* MoveToMarker)
-{
-	print("Climbing to Ledge");
-	
-	ClimbToMarker = MoveToMarker ? MoveToMarker->FindComponentByClass<UStaticMeshComponent>() : nullptr;
-	ClimbToMarkerLocation = ClimbToMarker ? ClimbToMarker->GetComponentLocation() : FVector::ZeroVector;
-
-	// Place on top left corner of marker, but preserve current Y coordinate
-	const FBox MarkerBox = MoveToMarker->GetMesh()->Bounds.GetBox();
-	const FVector DesiredPosition(MarkerBox.Min.X, GetActorLocation().Y, MarkerBox.Max.Z);
-
-	// Climbing to Ledge:
-	// - Pawn is placed on top of ledge (using ClimbLedgeGrabOffsetX to offset from grab point) immediately
-	// - AnimPositionAdjustment modifiers mesh relative location to smooth transition
-	//   (Mesh starts roughly at the same position, additional offset quickly decreased to zero in Tick)
-
-	const FVector StartPosition = GetActorLocation();
-	FVector AdjustedPosition = DesiredPosition;
-	AdjustedPosition.X += (ClimbLedgeGrabOffsetX * GetMesh()->GetRelativeScale3D().X) - GetBaseTranslationOffset().X;
-	AdjustedPosition.Z += GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-
-	TeleportTo(AdjustedPosition, GetActorRotation(), false, true);
-
-	AnimPositionAdjustment = StartPosition - (GetActorLocation() - (ClimbLedgeRootOffset * GetMesh()->GetRelativeScale3D()));
-	GetMesh()->SetRelativeLocation(GetBaseTranslationOffset() + AnimPositionAdjustment);
-
-	if (ClimbLedgeMontage)
-	{
-		const float Duration = PlayAnimMontage(ClimbLedgeMontage);
-		GetWorldTimerManager().SetTimer(TimerHandle_ResumeMovement,
-			this, &AGShiftCharacter::ResumeMovement, Duration - 0.1f, false);
-	}
-	
 	
 }
 
@@ -223,13 +298,14 @@ void AGShiftCharacter::ClimbOverObstacle()
 	(GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 150.f);
 
 	const FVector TraceEnd = TraceStart + FVector(0.f, 0.f, -1.f) * 500.f;
-
+	
 	FCollisionQueryParams TraceParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true);
 	FHitResult Hit;
-	GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Pawn, TraceParams);
+	GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility, TraceParams);
 
 	if (Hit.bBlockingHit)
 	{
+
 		const FVector DestPosition = Hit.ImpactPoint + FVector(0.f, 0.f, GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
 		const float ZDiff = DestPosition.Z - GetActorLocation().Z;
 		UE_LOG(LogGS, Log, TEXT("Climb over obstacle, Z difference: %f (%s)"), ZDiff,
@@ -259,6 +335,42 @@ void AGShiftCharacter::ClimbOverObstacle()
 	
 }
 
+void AGShiftCharacter::ClimbToLedge(const AGShiftClimbMarker* MoveToMarker)
+{
+	print("Climbing to Ledge");
+	
+	ClimbToMarker = MoveToMarker ? MoveToMarker->FindComponentByClass<UStaticMeshComponent>() : nullptr;
+	ClimbToMarkerLocation = ClimbToMarker ? ClimbToMarker->GetComponentLocation() : FVector::ZeroVector;
+
+	// Place on top left corner of marker, but preserve current Y coordinate
+	const FBox MarkerBox = MoveToMarker->GetMesh()->Bounds.GetBox();
+	const FVector DesiredPosition(MarkerBox.Min.X, GetActorLocation().Y, MarkerBox.Max.Z);
+	
+	// Climbing to Ledge:
+	// - Pawn is placed on top of ledge (using ClimbLedgeGrabOffsetX to offset from grab point) immediately
+	// - AnimPositionAdjustment modifiers mesh relative location to smooth transition
+	//   (Mesh starts roughly at the same position, additional offset quickly decreased to zero in Tick)
+
+	const FVector StartPosition = GetActorLocation();
+	FVector AdjustedPosition = DesiredPosition;
+	AdjustedPosition.X += (ClimbLedgeGrabOffsetX * GetMesh()->GetRelativeScale3D().X) - GetBaseTranslationOffset().X;
+	AdjustedPosition.Z += GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+	TeleportTo(AdjustedPosition, GetActorRotation(), false, true);
+
+	AnimPositionAdjustment = StartPosition - (GetActorLocation() - (ClimbLedgeRootOffset * GetMesh()->GetRelativeScale3D()));
+	GetMesh()->SetRelativeLocation(GetBaseTranslationOffset() + AnimPositionAdjustment);
+
+	if (ClimbLedgeMontage)
+	{
+		const float Duration = PlayAnimMontage(ClimbLedgeMontage);
+		GetWorldTimerManager().SetTimer(TimerHandle_ResumeMovement,
+			this, &AGShiftCharacter::ResumeMovement, Duration - 0.1f, false);
+	}
+	
+	
+}
+
 void AGShiftCharacter::ResumeMovement()
 {
 	SetActorEnableCollision(true);
@@ -279,6 +391,9 @@ void AGShiftCharacter::Landed(const FHitResult& Hit)
 	{
 		PlayRoundFinished();
 	}
+
+	bHasJumped = false;
+	DisableCayoteJump();
 }
 
 void AGShiftCharacter::OnRoundFinished()

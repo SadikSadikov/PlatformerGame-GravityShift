@@ -241,7 +241,7 @@ bool UGShiftCharacterMovementComponent::RestoreCollisionHeightAfterSlide()
 	/* Restoring original Pawn Owner mesh relative location */
 	if (bWantsSlideMeshRelativeLocationOffset)
 	{
-		GetCharacterOwner()->GetMesh()->SetRelativeLocation(DefCharacter->GetMesh()->GetRelativeLocation() + GetCharacterOwner()->GetActorLocation());
+		GetCharacterOwner()->GetMesh()->SetRelativeLocation(DefCharacter->GetMesh()->GetRelativeLocation());
 	}
 
 	return true;
