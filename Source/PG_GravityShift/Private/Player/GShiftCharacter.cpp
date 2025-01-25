@@ -120,13 +120,15 @@ void AGShiftCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		if (JumpAction && SlideAction && MoveAction)
+		if (JumpAction && SlideAction && MoveAction && DashAction)
 		{
 			EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AGShiftCharacter::CharacterMove);
 			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AGShiftCharacter::Jump);
 			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AGShiftCharacter::StopJumping);
 			EnhancedInputComponent->BindAction(SlideAction, ETriggerEvent::Started, this, &AGShiftCharacter::Slide);
 			EnhancedInputComponent->BindAction(SlideAction, ETriggerEvent::Completed, this, &AGShiftCharacter::StopSliding);
+			EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, this, &AGShiftCharacter::Dash);
+
 
 		}
 		
@@ -218,6 +220,11 @@ void AGShiftCharacter::DisableCayoteJump()
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_CayoteTime);
 }
 
+void AGShiftCharacter::ReactivateDash()
+{
+	bCanDash = true;
+}
+
 void AGShiftCharacter::CharacterMove(const FInputActionValue& Value)
 {
 	const FVector2D InputAxisValue = Value.Get<FVector2D>();
@@ -235,6 +242,20 @@ void AGShiftCharacter::StopSliding()
 {
 	bPressedSlide = false;
 	print("Sliding is Released");
+}
+
+void AGShiftCharacter::Dash()
+{
+	if (bCanDash)
+	{
+
+		// TODO:: Put name on this value 1200.f and InRate bellow for the timer
+		LaunchCharacter(GetActorForwardVector() * 2000.f, false, false);
+		bCanDash = false;
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AGShiftCharacter::ReactivateDash,
+			2.f);
+	}
 }
 
 void AGShiftCharacter::MoveBlockedBy(const FHitResult& Impact)

@@ -73,6 +73,8 @@ private:
 
 	void StopSliding();
 
+	void Dash();
+
 	UPROPERTY(EditAnywhere, Category = "Input|Context")
 	TObjectPtr<UInputMappingContext> BaseContext;
 
@@ -85,6 +87,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Input|Action")
 	TObjectPtr<UInputAction> SlideAction;
 
+	UPROPERTY(EditAnywhere, Category = "Input|Action")
+	TObjectPtr<UInputAction> DashAction;
+	
 	/*
 	* Camera is fixed to the ground, even when player jumps.
 	* But, if player jumps higher tha this threshold, camera will start to follow.
@@ -192,6 +197,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Config")
 	float CayoteTimeDuration = 0.2f;
 
+	// Wall Slide
 	UPROPERTY(BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	bool bWallSlide;
 	
@@ -200,6 +206,14 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Config")
 	float WallSlideInterpSpeed = 900.f;
+
+	// Dash
+
+	bool bCanDash = true;
+
+	void ReactivateDash();
+
+	
 
 	
 
