@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "HLSLTypeAliases.h"
-#include "GameFramework/Character.h"
+#include "GShiftBaseCharacter.h"
+#include "Interaction/PlayerInterface.h"
 #include "GShiftCharacter.generated.h"
 
 class AGShiftClimbMarker;
@@ -13,7 +13,7 @@ class UInputAction;
 struct FInputActionValue;
 
 UCLASS(Abstract)
-class PG_GRAVITYSHIFT_API AGShiftCharacter : public ACharacter
+class PG_GRAVITYSHIFT_API AGShiftCharacter : public AGShiftBaseCharacter, public IPlayerInterface
 {
 	GENERATED_BODY()
 

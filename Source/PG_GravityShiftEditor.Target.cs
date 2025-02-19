@@ -7,9 +7,11 @@ public class PG_GravityShiftEditorTarget : TargetRules
 {
 	public PG_GravityShiftEditorTarget( TargetInfo Target) : base(Target)
 	{
-		Type = TargetType.Editor;
-		DefaultBuildSettings = BuildSettingsVersion.V2;
-		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_1;
-		ExtraModuleNames.Add("PG_GravityShift");
+        bOverrideBuildEnvironment = true;
+        Type = TargetType.Editor;
+        DefaultBuildSettings = BuildSettingsVersion.V5;
+        IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_5;
+        CppStandard = CppStandardVersion.Cpp20;
+        ExtraModuleNames.Add("PG_GravityShift");
 	}
 }
