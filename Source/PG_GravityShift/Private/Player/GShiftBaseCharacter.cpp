@@ -21,7 +21,7 @@ TArray<FCombatMontage> AGShiftBaseCharacter::GetAttackMontages_Implementation()
 }
 
 void AGShiftBaseCharacter::GetCombatSocketLocation_Implementation(FVector& OutSocketLocation,
-	const ECombatSocketType& InSocketType)
+	const ECombatSocket& InSocket)
 {
 	if (CombatComponent->SocketNames.IsEmpty())
 	{
@@ -29,9 +29,9 @@ void AGShiftBaseCharacter::GetCombatSocketLocation_Implementation(FVector& OutSo
 		return;
 	}
 
-	for (TTuple<ECombatSocketType, FName> SocketName : CombatComponent->SocketNames)
+	for (TTuple<ECombatSocket, FName> SocketName : CombatComponent->SocketNames)
 	{
-		if (SocketName.Key == InSocketType)
+		if (SocketName.Key == InSocket)
 		{
 			OutSocketLocation = GetMesh()->GetSocketLocation(SocketName.Value);
 		}
@@ -48,9 +48,9 @@ AActor* AGShiftBaseCharacter::GetCombatTarget_Implementation() const
 	return CombatComponent->CombatTarget;
 }
 
-void AGShiftBaseCharacter::BroadcastMontageEventReceivedDelegate_Implementation(const ECombatType& CombatType)
+void AGShiftBaseCharacter::BroadcastMontageEventReceivedDelegate_Implementation(const EWeaponType& WeaponType)
 {
-	CombatComponent->OnMontageEventDelegate.Broadcast(CombatType);
+	CombatComponent->OnMontageEventDelegate.Broadcast(WeaponType);
 }
 
 

@@ -39,17 +39,6 @@ void AGShiftProjectile::BeginPlay()
 
 }
 
-void AGShiftProjectile::OnHit()
-{
-	UGameplayStatics::SpawnSoundAtLocation(this, ImpactSound, GetActorLocation());
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactEffect, GetActorLocation());
-	if (LoopingSoundComponent)
-	{
-		LoopingSoundComponent->Stop();
-		LoopingSoundComponent->DestroyComponent();
-	}
-}
-
 void AGShiftProjectile::Destroyed()
 {
 	if (LoopingSoundComponent)

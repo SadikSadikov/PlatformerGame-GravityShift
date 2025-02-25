@@ -30,8 +30,6 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USphereComponent> SphereComponent;
-	
-	virtual void OnHit();
 
 	virtual void Destroyed() override;
 

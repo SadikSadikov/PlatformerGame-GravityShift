@@ -10,21 +10,39 @@ class UAnimMontage;
 
 
 UENUM(BlueprintType)
-enum class ECombatSocketType : uint8
+enum class ECombatSocket : uint8
 {
-	ECST_NONE UMETA(DisplayName = "NONE"),
-	ECST_WeaponSocket UMETA(DisplayName = "WeaponSocket"),
-	ECST_RightHandSocket UMETA(DisplayName = "RightHandSocket"),
-	ECST_LeftHandSocket UMETA(DisplayName = "LeftHandSocket")
+	ECS_NONE UMETA(DisplayName = "NONE"),
+	ECS_Weapon UMETA(DisplayName = "Weapon"),
+	ECS_RightHand UMETA(DisplayName = "RightHand"),
+	ECS_LeftHand UMETA(DisplayName = "LeftHand")
+};
+
+UENUM(BlueprintType)
+enum class EInputType : uint8
+{
+	EIT_NONE UMETA(DisplayName = "NONE"),
+	EIT_RMB UMETA(DisplayName = "RMB"),
+	EIT_LMT UMETA(DisplayName = "LMB")
+
+};
+
+UENUM(BlueprintType)
+enum class EWeaponType : uint8
+{
+	EWT_NONE UMETA(DisplayName = "NONE"),
+	EWT_Hand UMETA(DisplayName = "Hand"),
+	EWT_Rocket UMETA(DisplayName = "Rocket")
+
 };
 
 UENUM(BlueprintType)
 enum class ECombatType : uint8
 {
 	ECT_NONE UMETA(DisplayName = "NONE"),
-	ECT_Hand UMETA(DisplayName = "Hand"),
-	ECT_Rocket UMETA(DisplayName = "Rocket"),
-	ECT_Bullet UMETA(DisplayName = "Bullet")
+	ECT_Ranged UMETA(DisplayName = "Ranged"),
+	ECT_Melee UMETA(DisplayName = "Melee")
+
 };
 
 USTRUCT(BlueprintType)
@@ -36,10 +54,16 @@ struct FCombatMontage
 	UAnimMontage* Montage = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	ECombatSocketType SocketType = ECombatSocketType::ECST_NONE;
+	ECombatSocket Socket = ECombatSocket::ECS_NONE;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	ECombatType Type = ECombatType::ECT_NONE;
+	EWeaponType WeaponType = EWeaponType::EWT_NONE;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	ECombatType CombatType = ECombatType::ECT_NONE;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	EInputType InputType = EInputType::EIT_NONE;
 	
 };
 
@@ -72,8 +96,8 @@ public:
 	TArray<FCombatMontage> GetAttackMontages();
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	void GetCombatSocketLocation(FVector& OutSocketLocation, const ECombatSocketType& InSocketType);
+	void GetCombatSocketLocation(FVector& OutSocketLocation, const ECombatSocket& InSocket);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	void BroadcastMontageEventReceivedDelegate(const ECombatType& CombatType);
+	void BroadcastMontageEventReceivedDelegate(const EWeaponType& WeaponType);
 };

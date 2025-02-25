@@ -22,13 +22,13 @@ public:
 
 	virtual TArray<FCombatMontage> GetAttackMontages_Implementation() override;
 
-	virtual void GetCombatSocketLocation_Implementation(FVector& OutSocketLocation, const ECombatSocketType& InSocketType) override; 
+	virtual void GetCombatSocketLocation_Implementation(FVector& OutSocketLocation, const ECombatSocket& InSocket) override; 
 
 	virtual void SetCombatTarget_Implementation(AActor* InCombatTarget) override;
 	
 	virtual AActor* GetCombatTarget_Implementation() const override;
 
-	virtual void BroadcastMontageEventReceivedDelegate_Implementation(const ECombatType& CombatType) override;
+	virtual void BroadcastMontageEventReceivedDelegate_Implementation(const EWeaponType& WeaponType) override;
 	
 	/* end Combat Interface */
 
