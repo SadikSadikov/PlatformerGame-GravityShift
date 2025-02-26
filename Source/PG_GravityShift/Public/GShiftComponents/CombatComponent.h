@@ -26,6 +26,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void RangedAttack(EInputType InputType = EInputType::EIT_NONE);
 
+	UFUNCTION(BlueprintCallable)
+	void MeleeAttack(EInputType InputType = EInputType::EIT_NONE);
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Config")
 	TArray<FCombatMontage> AttackMontages;
 
@@ -46,12 +49,42 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void SpawnProjectile(const FVector& ProjectileTargetLocation, const ECombatSocket& Socket);
 
+	UFUNCTION(BlueprintCallable)
+	void Punch(const ECombatSocket& Socket);
+
 	UPROPERTY(EditAnywhere, Category = "RangedAttack")
 	TSubclassOf<AGShiftProjectile> ProjectileClass;
 
 	
 
 private:
+
+	void GetLivePlayersWithinRadius(TArray<AActor*> ActorsToIgnore, float Radius, FVector SphereOrigin,  TArray<AActor*>& OutOverlappingActors);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Melee|Combo")
+	int32 CurrentComboCount = 0;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Melee|Combo")
+	int32 ComboMaxCount = 3;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Melee|Combo")
+	float CurrentPunchTime = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Melee|Combo")
+	float ComboThreshold = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Melee|Combo")
+	float ComboResetTime = 1.f;
+
+	FTimerHandle ComboResetTimer;
+
+	bool bIsComboTimerResetting = false;
+
+	bool bMeleeAttacking = false;
+
+	void ResetCombo();
+
+	void ResetComboWithDelay();
 	
 
 	
