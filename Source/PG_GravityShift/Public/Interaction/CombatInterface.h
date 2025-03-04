@@ -53,8 +53,9 @@ struct FCombatMontage
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	UAnimMontage* Montage = nullptr;
 
+	// For Combos
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	ECombatSocket Socket = ECombatSocket::ECS_NONE;
+	TMap<int32, ECombatSocket> Sockets;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	EWeaponType WeaponType = EWeaponType::EWT_NONE;

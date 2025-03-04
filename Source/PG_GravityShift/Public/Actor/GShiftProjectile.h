@@ -55,6 +55,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Config")
 	TObjectPtr<USoundBase> LoopingSound;
 
+	UPROPERTY(EditAnywhere, Category = "Config")
+	float DamageAmount = 20.f;
+
 	
 	
 	

@@ -24,10 +24,10 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION(BlueprintCallable)
-	void RangedAttack(EInputType InputType = EInputType::EIT_NONE);
+	void RangedAttack(bool& bIsAttackFinished, EInputType InputType = EInputType::EIT_NONE);
 
 	UFUNCTION(BlueprintCallable)
-	void MeleeAttack(EInputType InputType = EInputType::EIT_NONE);
+	void MeleeAttack(bool& bIsAttackFinished, EInputType InputType = EInputType::EIT_NONE);
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Config")
 	TArray<FCombatMontage> AttackMontages;
@@ -41,46 +41,59 @@ public:
 
 	FOnMontageEventReceivedSignature OnMontageEventDelegate;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
+	float Health = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
+	float MaxHealth = 100.f;
+
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, Category = "Config")
+	bool bIsAttacking = false;
+
 
 protected:
 
 	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintCallable)
-	void SpawnProjectile(const FVector& ProjectileTargetLocation, const ECombatSocket& Socket);
+	void SpawnProjectile(FVector ProjectileTargetLocation, const ECombatSocket& Socket);
 
 	UFUNCTION(BlueprintCallable)
 	void Punch(const ECombatSocket& Socket);
 
 	UPROPERTY(EditAnywhere, Category = "RangedAttack")
 	TSubclassOf<AGShiftProjectile> ProjectileClass;
+	
+	
 
 	
 
 private:
+	
 
 	void GetLivePlayersWithinRadius(TArray<AActor*> ActorsToIgnore, float Radius, FVector SphereOrigin,  TArray<AActor*>& OutOverlappingActors);
 
-	UPROPERTY(EditDefaultsOnly, Category = "Melee|Combo")
+	UPROPERTY(VisibleAnywhere, Category = "Config|Melee|Combo")
 	int32 CurrentComboCount = 0;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Melee|Combo")
+	UPROPERTY(EditDefaultsOnly, Category = "Config|Melee|Combo")
 	int32 ComboMaxCount = 3;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Melee|Combo")
+	UPROPERTY(VisibleAnywhere, Category = "Config|Melee|Combo")
 	float CurrentPunchTime = 0.f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Melee|Combo")
+	UPROPERTY(EditDefaultsOnly, Category = "Config|Melee|Combo")
 	float ComboThreshold = 0.5f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Melee|Combo")
+	UPROPERTY(EditDefaultsOnly, Category = "Config|Melee|Combo")
 	float ComboResetTime = 1.f;
 
 	FTimerHandle ComboResetTimer;
 
 	bool bIsComboTimerResetting = false;
 
-	bool bMeleeAttacking = false;
+	UPROPERTY(EditDefaultsOnly, Category = "Config|Melee|Combo")
+	float MeleeDamageAmount = 15.f;
 
 	void ResetCombo();
 

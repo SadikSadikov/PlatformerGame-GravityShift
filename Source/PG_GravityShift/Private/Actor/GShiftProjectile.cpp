@@ -21,6 +21,9 @@ AGShiftProjectile::AGShiftProjectile()
 	ProjectileMovementComponent->MaxSpeed = 550.f;
 	ProjectileMovementComponent->ProjectileGravityScale = 0.f;
 
+	// Temporary solution for hitting other bullets or rockets
+	Tags.Add(FName("Projectile"));
+
 }
 
 
@@ -61,6 +64,9 @@ void AGShiftProjectile::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (!IsValidOverlap(OtherActor)) return;
+
+	UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(),
+			this, UDamageType::StaticClass());
 	
 	GEngine->AddOnScreenDebugMessage(1, 2.5f, FColor::Blue,
 		FString::Printf(TEXT("Overlapped Actor is %s"), *OtherActor->GetName()));
@@ -71,7 +77,13 @@ void AGShiftProjectile::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent
 
 bool AGShiftProjectile::IsValidOverlap(AActor* OtherActor)
 {
-	if (GetInstigator() == OtherActor) return false;
+	
+	if (GetInstigator() == OtherActor || OtherActor->ActorHasTag(FName("Projectile"))) return false;
+
+	FName TargetTag;
+	GetInstigator()->Tags.Contains(FName("Player")) ? TargetTag = FName("Enemy") : TargetTag = FName("Player");
+	
+	if (!OtherActor->Tags.Contains(TargetTag)) return false;
 
 	return true;
 }

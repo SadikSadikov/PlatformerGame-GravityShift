@@ -7,6 +7,7 @@
 #include "PG_GravityShift/PG_GravityShift.h"
 #include "Actor/GShiftClimbMarker.h"
 #include "Components/CapsuleComponent.h"
+#include "GShiftComponents/CombatComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 #include "PG_GravityShift/PrintString.h"
@@ -15,6 +16,8 @@ AGShiftCharacter::AGShiftCharacter(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer.SetDefaultSubobjectClass<UGShiftCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	Tags.Add(FName("Player"));
 
 	JumpMaxCount = 2;
 	JumpMaxHoldTime = 0.5;
@@ -229,7 +232,21 @@ void AGShiftCharacter::CharacterMove(const FInputActionValue& Value)
 {
 	const FVector2D InputAxisValue = Value.Get<FVector2D>();
 
-	AddMovementInput(GetActorForwardVector(), InputAxisValue.Y);
+	FVector ActorForward = GetOwner()->GetActorForwardVector();
+
+	// If Attacking don`t change Actor Rotation 
+	if (InputAxisValue.Y != 0.f && !CombatComponent->bIsAttacking)
+	{
+		float TargetYaw = InputAxisValue.Y > 0.f ? 0.f : 180.f;
+
+		FRotator NewRotation(0.f, TargetYaw, 0.f);
+		
+		SetActorRotation(NewRotation);
+		
+	}
+	
+
+	AddMovementInput(ActorForward, InputAxisValue.Y);
 }
 
 void AGShiftCharacter::Slide()

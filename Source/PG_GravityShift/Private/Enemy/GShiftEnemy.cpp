@@ -2,5 +2,50 @@
 
 
 #include "Enemy/GShiftEnemy.h"
+#include "AI/GShiftAIController.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "GShiftComponents/CombatComponent.h"
 
 
+AGShiftEnemy::AGShiftEnemy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	Tags.Add(FName("Enemy"));
+}
+
+void AGShiftEnemy::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	GShiftAIController = Cast<AGShiftAIController>(NewController);
+	if (GShiftAIController && BehaviorTree && BehaviorTree->BlackboardAsset)
+	{
+		GShiftAIController->GetBlackboardComponent()->InitializeBlackboard(*BehaviorTree->BlackboardAsset);
+		GShiftAIController->RunBehaviorTree(BehaviorTree);
+		GShiftAIController->GetBlackboardComponent()->SetValueAsBool(FName("RangedAttacker"),
+			ICombatInterface::Execute_GetAttackMontages(this)[0].CombatType == ECombatType::ECT_Ranged );
+		
+	}
+
+	
+}
+
+void AGShiftEnemy::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	AimOffset(DeltaTime);
+}
+
+void AGShiftEnemy::AimOffset(float DeltaTime)
+{
+
+	if (!GetController()) return;
+	if (!CombatComponent->CombatTarget) return;
+
+	const FVector Direction = CombatComponent->CombatTarget->GetActorLocation() - GetActorLocation();
+	const FRotator LookAtRotation = Direction.Rotation();
+
+	AO_Pitch = LookAtRotation.Pitch;
+}

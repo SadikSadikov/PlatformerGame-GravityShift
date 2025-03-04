@@ -65,6 +65,9 @@ protected:
 
 private:
 
+	UPROPERTY(EditAnywhere, Category = "Config")
+	float TurnInterpSpeed = 2.f;
+
 	/* Input */
 
 	void CharacterMove(const FInputActionValue& Value);

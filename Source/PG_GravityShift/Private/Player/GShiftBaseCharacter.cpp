@@ -2,7 +2,11 @@
 
 
 #include "Player/GShiftBaseCharacter.h"
+
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GShiftComponents/CombatComponent.h"
+
+#include "PG_GravityShift/PrintString.h"
 
 // Sets default values
 AGShiftBaseCharacter::AGShiftBaseCharacter(const FObjectInitializer& ObjectInitializer)
@@ -12,6 +16,12 @@ AGShiftBaseCharacter::AGShiftBaseCharacter(const FObjectInitializer& ObjectIniti
 
 
 	CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
+
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationRoll = false;
+
+	GetCharacterMovement()->bOrientRotationToMovement = false;
 
 }
 
@@ -58,8 +68,20 @@ void AGShiftBaseCharacter::BroadcastMontageEventReceivedDelegate_Implementation(
 void AGShiftBaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	OnTakeAnyDamage.AddDynamic(this, &AGShiftBaseCharacter::ReceiveDamage);
 	
 }
+
+void AGShiftBaseCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType,
+	class AController* InstigatedBy, AActor* DamageCauser)
+{
+	CombatComponent->Health = FMath::Clamp(CombatComponent->Health - Damage, 0.f, CombatComponent->MaxHealth);
+
+	printf("%s Health is - %f", *GetName(), CombatComponent->Health);
+}
+
+
 
 // Called every frame
 void AGShiftBaseCharacter::Tick(float DeltaTime)

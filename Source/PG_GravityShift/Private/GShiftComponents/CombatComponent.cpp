@@ -4,8 +4,11 @@
 #include "Engine/OverlapResult.h"
 #include "Interaction/CombatInterface.h"
 #include "GameFramework/Character.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "PG_GravityShift/PrintString.h"
+
+
 
 UCombatComponent::UCombatComponent()
 {
@@ -19,14 +22,19 @@ void UCombatComponent::BeginPlay()
 	Super::BeginPlay();
 }
 
-void UCombatComponent::SpawnProjectile(const FVector& ProjectileTargetLocation, const ECombatSocket& Socket)
+void UCombatComponent::SpawnProjectile(FVector ProjectileTargetLocation, const ECombatSocket& Socket)
 {
 
 	// Projectile Spawn Location
 	FVector SocketLocation;
 	ICombatInterface::Execute_GetCombatSocketLocation(GetOwner(), SocketLocation, Socket);
-
+	SocketLocation.Y = 0.f;
+	
 	// Rotation of Projectile towards enemy
+	if (ProjectileTargetLocation.IsNearlyZero())
+	{
+		ProjectileTargetLocation = SocketLocation + (GetOwner()->GetActorForwardVector() * 1000.f);
+	}
 	FRotator ProjectileRotation = (ProjectileTargetLocation - SocketLocation).Rotation();
 
 	FTransform ProjectileTransform;
@@ -50,6 +58,8 @@ void UCombatComponent::Punch(const ECombatSocket& Socket)
 {
 	FVector SocketLocation;
 	ICombatInterface::Execute_GetCombatSocketLocation(GetOwner(), SocketLocation, Socket);
+
+	DrawDebugSphere(GetWorld(), SocketLocation, 45, 20, FColor::Yellow, true);
 	
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Add(GetOwner());
@@ -58,7 +68,11 @@ void UCombatComponent::Punch(const ECombatSocket& Socket)
 
 	for (AActor* OverlapedActor : OverlappingActors)
 	{
-		// TODO:: Make Damage
+		UGameplayStatics::ApplyDamage(OverlapedActor, MeleeDamageAmount, GetOwner()->GetInstigatorController(),
+			GetOwner(), UDamageType::StaticClass());
+
+		// TODO:: Call GetHit from ICombatInterface
+		
 		printf("Overlapped Actor - %s", *OverlapedActor->GetName());
 	}
 
@@ -66,7 +80,7 @@ void UCombatComponent::Punch(const ECombatSocket& Socket)
 }
 
 void UCombatComponent::GetLivePlayersWithinRadius(TArray<AActor*> ActorsToIgnore, float Radius, FVector SphereOrigin,
-	TArray<AActor*>& OutOverlappingActors)
+                                                  TArray<AActor*>& OutOverlappingActors)
 {
 	if (GetWorld())
 	{
@@ -107,13 +121,21 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	
 }
 
-void UCombatComponent::RangedAttack(EInputType InputType)
+void UCombatComponent::RangedAttack(bool& bIsAttackFinished, EInputType InputType)
 {
+	bIsAttackFinished = false;
+	if (bIsAttacking) return;
 	if (!GetOwner()->Implements<UCombatInterface>()) return;
-	if (!CombatTarget) return;
 
-	// Update Motion Warping, Definition of this function is in Blueprint
-	ICombatInterface::Execute_UpdateFacingTarget(GetOwner(), CombatTarget->GetActorLocation());
+	FVector CombatLocation;
+	
+	if (CombatTarget)
+	{
+		// Update Motion Warping, Definition of this function is in Blueprint
+		ICombatInterface::Execute_UpdateFacingTarget(GetOwner(), CombatTarget->GetActorLocation());
+
+		CombatLocation = CombatTarget->GetActorLocation();
+	}
 	
 	ACharacter* CharacterOwner = Cast<ACharacter>(GetOwner());
 	if (!CharacterOwner) return;
@@ -124,6 +146,7 @@ void UCombatComponent::RangedAttack(EInputType InputType)
 
 	for (FCombatMontage CombatMontage : AttackMontages)
 	{
+		bIsAttacking = true;
 
 		if (InputType == CombatMontage.InputType)
 		{
@@ -133,12 +156,13 @@ void UCombatComponent::RangedAttack(EInputType InputType)
 
 				if (!OnMontageEventDelegate.IsBound())
 				{
-					OnMontageEventDelegate.AddLambda([this, CombatMontage](EWeaponType WeaponType)
+					OnMontageEventDelegate.AddLambda([this, CombatMontage, CombatLocation, &bIsAttackFinished](EWeaponType WeaponType)
 				{
 					if (WeaponType == CombatMontage.WeaponType)
 					{
-						SpawnProjectile(CombatTarget->GetActorLocation(), CombatMontage.Socket);
-
+						SpawnProjectile(CombatLocation, *CombatMontage.Sockets.Find(1));
+						bIsAttacking = false;
+						bIsAttackFinished = true;
 						OnMontageEventDelegate.Clear();
 					}
 							
@@ -167,13 +191,17 @@ void UCombatComponent::ResetComboWithDelay()
 	
 }
 
-void UCombatComponent::MeleeAttack(EInputType InputType)
+void UCombatComponent::MeleeAttack(bool& bIsAttackFinished, EInputType InputType)
 {
+	bIsAttackFinished = false;
+	if (bIsAttacking) return;
 	if (!GetOwner()->Implements<UCombatInterface>()) return;
-	if (!CombatTarget) return;
-
-	// Update Motion Warping, Definition of this function is in Blueprint
-	ICombatInterface::Execute_UpdateFacingTarget(GetOwner(), CombatTarget->GetActorLocation());
+	
+	if (CombatTarget)
+	{
+		// Update Motion Warping, Definition of this function is in Blueprint
+		ICombatInterface::Execute_UpdateFacingTarget(GetOwner(), CombatTarget->GetActorLocation());
+	}
 
 	if (AttackMontages.IsEmpty()) return;
 
@@ -186,12 +214,11 @@ void UCombatComponent::MeleeAttack(EInputType InputType)
 	
 	if (CurrentComboCount < ComboMaxCount && CurrentPunchTime < ComboThreshold)
 	{
-		if (bMeleeAttacking) return;
+		bIsAttacking = true;
 		printf("Current Combo Count: %d", CurrentComboCount);
 		CurrentComboCount++;
 		CurrentPunchTime = 0.f;
-		bMeleeAttacking = true;
-
+		
 		for (FCombatMontage CombatMontage : AttackMontages)
 		{
 			if (InputType == CombatMontage.InputType)
@@ -204,15 +231,24 @@ void UCombatComponent::MeleeAttack(EInputType InputType)
 					
 					if (!OnMontageEventDelegate.IsBound())
 					{
-						OnMontageEventDelegate.AddLambda([this, CombatMontage](EWeaponType WeaponType)
+						OnMontageEventDelegate.AddLambda([this, CombatMontage, &bIsAttackFinished](EWeaponType WeaponType)
 					{
 						if (WeaponType == CombatMontage.WeaponType)
 						{
+							// CurrentComboCount Start from 1
+							if (CombatMontage.Sockets.Find(CurrentComboCount))
+							{
+								Punch(*CombatMontage.Sockets.Find(CurrentComboCount));
+							}
+							else
+							{
+								printf("You don`t have enough Melee Combo Section in Montage...");
+							}
 							
-							bMeleeAttacking = false;
-								
+
+							bIsAttacking = false;
+							bIsAttackFinished = true;
 							
-							Punch(CombatMontage.Socket);
 							OnMontageEventDelegate.Clear();
 						}
 							

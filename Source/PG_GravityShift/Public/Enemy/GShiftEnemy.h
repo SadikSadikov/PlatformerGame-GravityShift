@@ -7,6 +7,8 @@
 #include "Player/GShiftBaseCharacter.h"
 #include "GShiftEnemy.generated.h"
 
+class UBehaviorTree;
+class AGShiftAIController;
 /**
  * 
  */
@@ -16,6 +18,32 @@ class PG_GRAVITYSHIFT_API AGShiftEnemy : public AGShiftBaseCharacter, public IEn
 	GENERATED_BODY()
 
 public:
+
+	AGShiftEnemy(const FObjectInitializer& ObjectInitializer);
+
+	virtual void PossessedBy(AController* NewController) override;
+
+	virtual void Tick(float DeltaTime) override;
+
+protected:
+
+
+	UPROPERTY(EditAnywhere, Category = "AI")
+	TObjectPtr<UBehaviorTree> BehaviorTree;
+	
+	UPROPERTY()
+	TObjectPtr<AGShiftAIController> GShiftAIController;
+
+private:
+
+	float AO_Pitch;
+
+	void AimOffset(float DeltaTime);
+
+public:	
+
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE float GetAO_Pitch() const { return AO_Pitch; }
 	
 	
 };
