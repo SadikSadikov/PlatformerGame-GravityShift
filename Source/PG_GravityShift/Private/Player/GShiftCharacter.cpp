@@ -458,6 +458,19 @@ bool AGShiftCharacter::WantsToSlide() const
 	return bPressedSlide;
 }
 
+void AGShiftCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType,
+	class AController* InstigatedBy, AActor* DamageCauser)
+{
+	Super::ReceiveDamage(DamagedActor, Damage, DamageType, InstigatedBy, DamageCauser);
+
+	if (CombatComponent->bIsDead)
+	{
+		//APlayerController* PlayerController = Cast<APlayerController>(GetController());
+		//DisableInput(PlayerController);
+	}
+	
+}
+
 void AGShiftCharacter::PlayRoundFinished()
 {
 	AGShiftGameModeBase* MyGame = GetWorld()->GetAuthGameMode<AGShiftGameModeBase>();

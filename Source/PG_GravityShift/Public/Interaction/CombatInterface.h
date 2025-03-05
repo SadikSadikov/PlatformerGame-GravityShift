@@ -101,4 +101,5 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void BroadcastMontageEventReceivedDelegate(const EWeaponType& WeaponType);
+	
 };

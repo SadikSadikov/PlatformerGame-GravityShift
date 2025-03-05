@@ -5,9 +5,11 @@
 #include "Interaction/CombatInterface.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 
 #include "PG_GravityShift/PrintString.h"
-
+#include "UniversalObjectLocators/AnimInstanceLocatorFragment.h"
 
 
 UCombatComponent::UCombatComponent()
@@ -79,6 +81,109 @@ void UCombatComponent::Punch(const ECombatSocket& Socket)
 	
 }
 
+void UCombatComponent::HitReact()
+{
+	ACharacter* CharacterOwner = Cast<ACharacter>(GetOwner());
+	if (!CharacterOwner) return;
+
+	if (bIsHitReacting) return;
+
+	UAnimInstance* AnimInstance = CharacterOwner->GetMesh()->GetAnimInstance();
+	if (AnimInstance && !HitReactMontage) return;
+
+	CurrentMontage = HitReactMontage;
+	bIsHitReacting = true;
+	OnHitReactDelegate.Broadcast(bIsHitReacting);
+
+	if (!AnimInstance->OnMontageEnded.IsAlreadyBound(this, &UCombatComponent::OnMontageEnded))
+	{
+		AnimInstance->OnMontageEnded.AddDynamic(this, &UCombatComponent::OnMontageEnded);
+	}
+	
+	AnimInstance->Montage_Play(HitReactMontage);
+
+	
+}
+
+void UCombatComponent::Death()
+{
+	ACharacter* CharacterOwner = Cast<ACharacter>(GetOwner());
+	if (!CharacterOwner) return;
+
+	UAnimInstance* AnimInstance = CharacterOwner->GetMesh()->GetAnimInstance();
+	if (AnimInstance && !DeathMontage) return;
+
+	CurrentMontage = DeathMontage;
+	bIsDead = true;
+
+	CharacterOwner->GetCharacterMovement()->DisableMovement();
+	CharacterOwner->GetCharacterMovement()->StopMovementImmediately();
+
+	if (!AnimInstance->OnMontageBlendingOut.IsAlreadyBound(this, &UCombatComponent::OnDeathAnimationBlendingOut))
+	{
+		AnimInstance->OnMontageBlendingOut.AddDynamic(this, &UCombatComponent::OnDeathAnimationBlendingOut);
+	}
+
+	AnimInstance->Montage_Play(DeathMontage);
+}
+
+void UCombatComponent::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (CurrentMontage != Montage) return;
+	
+	ACharacter* CharacterOwner = Cast<ACharacter>(GetOwner());
+	if (!CharacterOwner) return;
+	UAnimInstance* AnimInstance = CharacterOwner->GetMesh()->GetAnimInstance();
+	//
+	bIsHitReacting = false;
+	OnHitReactDelegate.Broadcast(bIsHitReacting);
+
+	AnimInstance->OnMontageEnded.RemoveDynamic(this, &UCombatComponent::OnMontageEnded);
+	
+}
+
+void UCombatComponent::OnAttackMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (CurrentMontage != Montage) return;
+	if (bInterrupted)
+	{
+		bIsAttacking = false;
+		OnMontageEventDelegate.Clear();
+	}
+
+	ACharacter* CharacterOwner = Cast<ACharacter>(GetOwner());
+	if (!CharacterOwner) return;
+	UAnimInstance* AnimInstance = CharacterOwner->GetMesh()->GetAnimInstance();
+
+	AnimInstance->OnMontageBlendingOut.RemoveDynamic(this, &UCombatComponent::OnAttackMontageBlendingOut);
+}
+
+
+void UCombatComponent::OnDeathAnimationBlendingOut(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (CurrentMontage != Montage) return;
+	
+	ACharacter* CharacterOwner = Cast<ACharacter>(GetOwner());
+	if (!CharacterOwner) return;
+
+	UAnimInstance* AnimInstance = CharacterOwner->GetMesh()->GetAnimInstance();
+
+	if (Montage == DeathMontage)
+	{
+		CharacterOwner->GetMesh()->SetSimulatePhysics(true);
+		CharacterOwner->GetMesh()->SetEnableGravity(true);
+		CharacterOwner->GetMesh()->SetCollisionEnabled(ECollisionEnabled::Type::PhysicsOnly);
+		CharacterOwner->GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+
+		CharacterOwner->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	
+	
+	
+	AnimInstance->OnMontageBlendingOut.RemoveDynamic(this, &UCombatComponent::OnDeathAnimationBlendingOut);
+}
+
 void UCombatComponent::GetLivePlayersWithinRadius(TArray<AActor*> ActorsToIgnore, float Radius, FVector SphereOrigin,
                                                   TArray<AActor*>& OutOverlappingActors)
 {
@@ -121,9 +226,8 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	
 }
 
-void UCombatComponent::RangedAttack(bool& bIsAttackFinished, EInputType InputType)
+void UCombatComponent::RangedAttack(EInputType InputType)
 {
-	bIsAttackFinished = false;
 	if (bIsAttacking) return;
 	if (!GetOwner()->Implements<UCombatInterface>()) return;
 
@@ -152,17 +256,22 @@ void UCombatComponent::RangedAttack(bool& bIsAttackFinished, EInputType InputTyp
 		{
 			if (CombatMontage.CombatType == ECombatType::ECT_Ranged)
 			{
+				CurrentMontage = CombatMontage.Montage;
 				AnimInstance->Montage_Play(CombatMontage.Montage);
+
+				if (!AnimInstance->OnMontageBlendingOut.IsAlreadyBound(this, &UCombatComponent::OnAttackMontageBlendingOut))
+				{
+					AnimInstance->OnMontageBlendingOut.AddDynamic(this, &UCombatComponent::OnAttackMontageBlendingOut);
+				}
 
 				if (!OnMontageEventDelegate.IsBound())
 				{
-					OnMontageEventDelegate.AddLambda([this, CombatMontage, CombatLocation, &bIsAttackFinished](EWeaponType WeaponType)
+					OnMontageEventDelegate.AddLambda([this, CombatMontage, CombatLocation](EWeaponType WeaponType)
 				{
 					if (WeaponType == CombatMontage.WeaponType)
 					{
 						SpawnProjectile(CombatLocation, *CombatMontage.Sockets.Find(1));
 						bIsAttacking = false;
-						bIsAttackFinished = true;
 						OnMontageEventDelegate.Clear();
 					}
 							
@@ -191,9 +300,8 @@ void UCombatComponent::ResetComboWithDelay()
 	
 }
 
-void UCombatComponent::MeleeAttack(bool& bIsAttackFinished, EInputType InputType)
+void UCombatComponent::MeleeAttack(EInputType InputType)
 {
-	bIsAttackFinished = false;
 	if (bIsAttacking) return;
 	if (!GetOwner()->Implements<UCombatInterface>()) return;
 	
@@ -225,13 +333,20 @@ void UCombatComponent::MeleeAttack(bool& bIsAttackFinished, EInputType InputType
 			{
 				if (CombatMontage.CombatType == ECombatType::ECT_Melee)
 				{
+
+					CurrentMontage = CombatMontage.Montage;
 					AnimInstance->Montage_Play(CombatMontage.Montage);
 					FName SectionName = FName(*FString::Printf(TEXT("Attack%d"), CurrentComboCount));
 					AnimInstance->Montage_JumpToSection(SectionName, CombatMontage.Montage);
+
+					if (!AnimInstance->OnMontageBlendingOut.IsAlreadyBound(this, &UCombatComponent::OnAttackMontageBlendingOut))
+					{
+						AnimInstance->OnMontageBlendingOut.AddDynamic(this, &UCombatComponent::OnAttackMontageBlendingOut);
+					}
 					
 					if (!OnMontageEventDelegate.IsBound())
 					{
-						OnMontageEventDelegate.AddLambda([this, CombatMontage, &bIsAttackFinished](EWeaponType WeaponType)
+						OnMontageEventDelegate.AddLambda([this, CombatMontage](EWeaponType WeaponType)
 					{
 						if (WeaponType == CombatMontage.WeaponType)
 						{
@@ -247,7 +362,6 @@ void UCombatComponent::MeleeAttack(bool& bIsAttackFinished, EInputType InputType
 							
 
 							bIsAttacking = false;
-							bIsAttackFinished = true;
 							
 							OnMontageEventDelegate.Clear();
 						}

@@ -59,6 +59,8 @@ public:
 
 	bool WantsToSlide() const;
 
+	virtual void ReceiveDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser) override;
+
 protected:
 
 	virtual void BeginPlay() override;

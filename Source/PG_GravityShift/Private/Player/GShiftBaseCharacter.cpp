@@ -3,6 +3,7 @@
 
 #include "Player/GShiftBaseCharacter.h"
 
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GShiftComponents/CombatComponent.h"
 
@@ -70,6 +71,10 @@ void AGShiftBaseCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	OnTakeAnyDamage.AddDynamic(this, &AGShiftBaseCharacter::ReceiveDamage);
+	if (CombatComponent)
+	{
+		CombatComponent->OnHitReactDelegate.AddDynamic(this, &AGShiftBaseCharacter::ReceiveHitReactDelegate);
+	}
 	
 }
 
@@ -78,22 +83,28 @@ void AGShiftBaseCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, con
 {
 	CombatComponent->Health = FMath::Clamp(CombatComponent->Health - Damage, 0.f, CombatComponent->MaxHealth);
 
+	CombatComponent->HitReact();
+
+	if (CombatComponent->Health <= 0.f)
+	{
+		CombatComponent->Death();
+		
+	}
+	
+
 	printf("%s Health is - %f", *GetName(), CombatComponent->Health);
 }
 
+void AGShiftBaseCharacter::ReceiveHitReactDelegate(bool bHitReacting)
+{
+}
 
 
-// Called every frame
 void AGShiftBaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 }
 
-// Called to bind functionality to input
-void AGShiftBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-}
 

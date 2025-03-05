@@ -12,6 +12,8 @@ class AGShiftProjectile;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnMontageEventReceivedSignature, EWeaponType /*WeaponType*/);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHitReactSignature, bool, bHitReacting);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PG_GRAVITYSHIFT_API UCombatComponent : public UActorComponent
 {
@@ -24,10 +26,14 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION(BlueprintCallable)
-	void RangedAttack(bool& bIsAttackFinished, EInputType InputType = EInputType::EIT_NONE);
+	void RangedAttack(EInputType InputType = EInputType::EIT_NONE);
 
 	UFUNCTION(BlueprintCallable)
-	void MeleeAttack(bool& bIsAttackFinished, EInputType InputType = EInputType::EIT_NONE);
+	void MeleeAttack(EInputType InputType = EInputType::EIT_NONE);
+
+	void HitReact();
+
+	void Death();
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Config")
 	TArray<FCombatMontage> AttackMontages;
@@ -41,6 +47,9 @@ public:
 
 	FOnMontageEventReceivedSignature OnMontageEventDelegate;
 
+	UPROPERTY(BlueprintReadOnly, BlueprintAssignable)
+	FOnHitReactSignature OnHitReactDelegate;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
 	float Health = 100.f;
 
@@ -49,6 +58,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, Category = "Config")
 	bool bIsAttacking = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Config|HitReact")
+	bool bIsHitReacting = false;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Config|HitReact")
+	bool bIsDead = false;
 
 
 protected:
@@ -61,12 +76,28 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void Punch(const ECombatSocket& Socket);
 
-	UPROPERTY(EditAnywhere, Category = "RangedAttack")
+	UPROPERTY(EditAnywhere, Category = "Config|RangedAttack")
 	TSubclassOf<AGShiftProjectile> ProjectileClass;
-	
-	
 
-	
+	// Hit React
+
+	UPROPERTY(EditDefaultsOnly, Category = "Config|HitReact")
+	TObjectPtr<UAnimMontage> HitReactMontage;
+
+	UFUNCTION()
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void OnAttackMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
+
+	// Death
+
+	UPROPERTY(EditDefaultsOnly, Category = "Config|HitReact")
+	TObjectPtr<UAnimMontage> DeathMontage;
+
+	UFUNCTION()
+	void OnDeathAnimationBlendingOut(UAnimMontage* Montage, bool bInterrupted);
+
 
 private:
 	
@@ -98,6 +129,9 @@ private:
 	void ResetCombo();
 
 	void ResetComboWithDelay();
+
+	UPROPERTY()
+	TObjectPtr<UAnimMontage> CurrentMontage;
 	
 
 	

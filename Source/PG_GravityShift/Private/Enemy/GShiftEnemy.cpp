@@ -38,6 +38,32 @@ void AGShiftEnemy::Tick(float DeltaTime)
 	AimOffset(DeltaTime);
 }
 
+void AGShiftEnemy::ReceiveDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType,
+	class AController* InstigatedBy, AActor* DamageCauser)
+{
+	Super::ReceiveDamage(DamagedActor, Damage, DamageType, InstigatedBy, DamageCauser);
+
+	if (CombatComponent->bIsDead && GShiftAIController)
+	{
+		GShiftAIController->GetBlackboardComponent()->SetValueAsBool(FName("Dead"), CombatComponent->bIsDead );
+		SetLifeSpan(DeathLifeSpan);
+	}
+	
+	
+}
+
+void AGShiftEnemy::ReceiveHitReactDelegate(bool bHitReacting)
+{
+	Super::ReceiveHitReactDelegate(bHitReacting);
+
+	if (GShiftAIController)
+	{
+		GShiftAIController->GetBlackboardComponent()->SetValueAsBool(FName("HitReacting"), bHitReacting);
+	}
+	
+	
+}
+
 void AGShiftEnemy::AimOffset(float DeltaTime)
 {
 
