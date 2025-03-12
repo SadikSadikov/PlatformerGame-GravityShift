@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GShiftComponents/CombatComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "PG_GravityShift/PrintString.h"
 
@@ -23,6 +24,10 @@ AGShiftBaseCharacter::AGShiftBaseCharacter(const FObjectInitializer& ObjectIniti
 	bUseControllerRotationRoll = false;
 
 	GetCharacterMovement()->bOrientRotationToMovement = false;
+
+	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Weapon"));
+	Weapon->SetupAttachment(GetMesh(), FName("WeaponHandSocket"));
+	Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 }
 
@@ -44,7 +49,15 @@ void AGShiftBaseCharacter::GetCombatSocketLocation_Implementation(FVector& OutSo
 	{
 		if (SocketName.Key == InSocket)
 		{
-			OutSocketLocation = GetMesh()->GetSocketLocation(SocketName.Value);
+			if (Weapon && InSocket == ECombatSocket::ECS_Weapon)
+			{
+				OutSocketLocation = Weapon->GetSocketLocation(SocketName.Value);
+			}
+			else
+			{
+				OutSocketLocation = GetMesh()->GetSocketLocation(SocketName.Value);
+			}
+			
 		}
 	}
 }
@@ -70,6 +83,19 @@ void AGShiftBaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (GetMesh() && GetMesh()->GetSkeletalMeshAsset())
+	{
+		int Index = 0;
+		for (auto Value : GetMesh()->GetMaterials())
+		{
+			if (UMaterialInstanceDynamic* DynamicInstance = UMaterialInstanceDynamic::Create(Value, this))
+			{
+				GetMesh()->SetMaterial(Index, DynamicInstance);
+			}
+			++Index;
+		}
+	}
+
 	OnTakeAnyDamage.AddDynamic(this, &AGShiftBaseCharacter::ReceiveDamage);
 	if (CombatComponent)
 	{
@@ -81,6 +107,22 @@ void AGShiftBaseCharacter::BeginPlay()
 void AGShiftBaseCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType,
 	class AController* InstigatedBy, AActor* DamageCauser)
 {
+
+	if (GetMesh() && GetMesh()->GetSkeletalMeshAsset())
+	{
+		for (auto Value : GetMesh()->GetMaterials())
+		{
+			if (UMaterialInstanceDynamic* DynamicInstance = Cast<UMaterialInstanceDynamic>(Value))
+			{
+				float Time = UGameplayStatics::GetTimeSeconds(this);
+				
+				DynamicInstance->SetScalarParameterValue(FName("HitStartTime"), Time);
+				DynamicInstance->SetScalarParameterValue(FName("HitDuration"), HitDuration);
+				DynamicInstance->SetVectorParameterValue(FName("HitFlashColor"), HitFlashColor);
+			}
+		}
+	}
+	
 	CombatComponent->Health = FMath::Clamp(CombatComponent->Health - Damage, 0.f, CombatComponent->MaxHealth);
 
 	CombatComponent->HitReact();

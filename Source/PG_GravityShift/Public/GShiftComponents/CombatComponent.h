@@ -92,11 +92,6 @@ protected:
 
 	// Death
 
-	UPROPERTY(EditDefaultsOnly, Category = "Config|HitReact")
-	TObjectPtr<UAnimMontage> DeathMontage;
-
-	UFUNCTION()
-	void OnDeathAnimationBlendingOut(UAnimMontage* Montage, bool bInterrupted);
 
 
 private:
@@ -132,6 +127,15 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UAnimMontage> CurrentMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Config|RangedAttack")
+	TObjectPtr<USoundBase> FireSound;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Config|RangedAttack")
+	TObjectPtr<UParticleSystem> FireParticle;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Config|RangedAttack")
+	bool bNotUseMontageRangedAttack = false;
 	
 
 	

@@ -465,8 +465,8 @@ void AGShiftCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const c
 
 	if (CombatComponent->bIsDead)
 	{
-		//APlayerController* PlayerController = Cast<APlayerController>(GetController());
-		//DisableInput(PlayerController);
+		APlayerController* PlayerController = Cast<APlayerController>(GetController());
+		DisableInput(PlayerController);
 	}
 	
 }

@@ -45,6 +45,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UCombatComponent> CombatComponent;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	TObjectPtr<USkeletalMeshComponent> Weapon;
+
 	UFUNCTION()
 	virtual void ReceiveHitReactDelegate(bool bHitReacting);
 
@@ -53,6 +56,12 @@ protected:
 
 
 private:
+
+	UPROPERTY(EditAnywhere, Category = "Combat|Hit Effect")
+	float HitDuration = 0.1;
+
+	UPROPERTY(EditAnywhere, Category = "Combat|Hit Effect")
+	FLinearColor HitFlashColor = FLinearColor::Red;
 
 	
 

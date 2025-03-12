@@ -32,7 +32,8 @@ enum class EWeaponType : uint8
 {
 	EWT_NONE UMETA(DisplayName = "NONE"),
 	EWT_Hand UMETA(DisplayName = "Hand"),
-	EWT_Rocket UMETA(DisplayName = "Rocket")
+	EWT_Rocket UMETA(DisplayName = "Rocket"),
+	EWT_Bullet UMETA(DisplayName = "Bullet")
 
 };
 

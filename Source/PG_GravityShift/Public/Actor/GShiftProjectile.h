@@ -9,6 +9,7 @@
 class USphereComponent;
 class UProjectileMovementComponent;
 class UNiagaraSystem;
+class UNiagaraComponent;
 
 UCLASS()
 class PG_GRAVITYSHIFT_API AGShiftProjectile : public AActor
@@ -41,13 +42,15 @@ protected:
 
 	bool IsValidOverlap(AActor* OtherActor);
 
+	void SpawnTrailSystem();
+
 private:
 
 	UPROPERTY(EditAnywhere, Category = "Config")
 	float LifeSpan = 15.f;
 
 	UPROPERTY(EditAnywhere, Category = "Config")
-	TObjectPtr<UNiagaraSystem> ImpactEffect;
+	TObjectPtr<UParticleSystem> ImpactEffect;
 
 	UPROPERTY(EditAnywhere, Category = "Config")
 	TObjectPtr<USoundBase> ImpactSound;
@@ -56,10 +59,29 @@ private:
 	TObjectPtr<USoundBase> LoopingSound;
 
 	UPROPERTY(EditAnywhere, Category = "Config")
+	TObjectPtr<UNiagaraSystem> TrailSystem;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraComponent> TrailSystemComponent;
+
+	UPROPERTY(EditAnywhere, Category = "Config")
+	TObjectPtr<UParticleSystem> Tracer;
+
+	UPROPERTY()
+	TObjectPtr<UParticleSystemComponent> TracerComponent;
+
+	UPROPERTY(EditAnywhere, Category = "Config")
 	float DamageAmount = 20.f;
+
+	UPROPERTY(EditAnywhere, Category = "Config")
+	bool bSpawnTrail = false;
+
+	
 
 	
 	
 	
 
 };
+
+

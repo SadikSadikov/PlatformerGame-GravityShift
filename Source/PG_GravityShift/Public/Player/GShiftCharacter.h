@@ -218,6 +218,11 @@ private:
 
 	void ReactivateDash();
 
+public:
+
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE bool IsSliding() const{ return bPressedSlide; }
+
 	
 
 	

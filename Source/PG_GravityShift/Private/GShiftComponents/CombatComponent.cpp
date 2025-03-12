@@ -31,6 +31,20 @@ void UCombatComponent::SpawnProjectile(FVector ProjectileTargetLocation, const E
 	FVector SocketLocation;
 	ICombatInterface::Execute_GetCombatSocketLocation(GetOwner(), SocketLocation, Socket);
 	SocketLocation.Y = 0.f;
+
+	if (FireParticle)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(this, FireParticle, SocketLocation);
+	}
+
+	if (FireSound)
+	{
+		UGameplayStatics::SpawnSoundAtLocation(this, FireSound, SocketLocation);
+	}
+	
+
+	
+	
 	
 	// Rotation of Projectile towards enemy
 	if (ProjectileTargetLocation.IsNearlyZero())
@@ -109,22 +123,19 @@ void UCombatComponent::Death()
 {
 	ACharacter* CharacterOwner = Cast<ACharacter>(GetOwner());
 	if (!CharacterOwner) return;
-
-	UAnimInstance* AnimInstance = CharacterOwner->GetMesh()->GetAnimInstance();
-	if (AnimInstance && !DeathMontage) return;
-
-	CurrentMontage = DeathMontage;
+	
 	bIsDead = true;
-
+	
 	CharacterOwner->GetCharacterMovement()->DisableMovement();
 	CharacterOwner->GetCharacterMovement()->StopMovementImmediately();
 
-	if (!AnimInstance->OnMontageBlendingOut.IsAlreadyBound(this, &UCombatComponent::OnDeathAnimationBlendingOut))
-	{
-		AnimInstance->OnMontageBlendingOut.AddDynamic(this, &UCombatComponent::OnDeathAnimationBlendingOut);
-	}
+	CharacterOwner->GetMesh()->SetSimulatePhysics(true);
+	CharacterOwner->GetMesh()->SetEnableGravity(true);
+	CharacterOwner->GetMesh()->SetCollisionEnabled(ECollisionEnabled::Type::PhysicsOnly);
+	CharacterOwner->GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
 
-	AnimInstance->Montage_Play(DeathMontage);
+	CharacterOwner->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
 }
 
 void UCombatComponent::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -156,32 +167,6 @@ void UCombatComponent::OnAttackMontageBlendingOut(UAnimMontage* Montage, bool bI
 	UAnimInstance* AnimInstance = CharacterOwner->GetMesh()->GetAnimInstance();
 
 	AnimInstance->OnMontageBlendingOut.RemoveDynamic(this, &UCombatComponent::OnAttackMontageBlendingOut);
-}
-
-
-void UCombatComponent::OnDeathAnimationBlendingOut(UAnimMontage* Montage, bool bInterrupted)
-{
-	if (CurrentMontage != Montage) return;
-	
-	ACharacter* CharacterOwner = Cast<ACharacter>(GetOwner());
-	if (!CharacterOwner) return;
-
-	UAnimInstance* AnimInstance = CharacterOwner->GetMesh()->GetAnimInstance();
-
-	if (Montage == DeathMontage)
-	{
-		CharacterOwner->GetMesh()->SetSimulatePhysics(true);
-		CharacterOwner->GetMesh()->SetEnableGravity(true);
-		CharacterOwner->GetMesh()->SetCollisionEnabled(ECollisionEnabled::Type::PhysicsOnly);
-		CharacterOwner->GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
-
-		CharacterOwner->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	}
-
-	
-	
-	
-	AnimInstance->OnMontageBlendingOut.RemoveDynamic(this, &UCombatComponent::OnDeathAnimationBlendingOut);
 }
 
 void UCombatComponent::GetLivePlayersWithinRadius(TArray<AActor*> ActorsToIgnore, float Radius, FVector SphereOrigin,
@@ -256,6 +241,12 @@ void UCombatComponent::RangedAttack(EInputType InputType)
 		{
 			if (CombatMontage.CombatType == ECombatType::ECT_Ranged)
 			{
+				if (bNotUseMontageRangedAttack)
+				{
+					SpawnProjectile(CombatLocation, *CombatMontage.Sockets.Find(1));
+					bIsAttacking = false;
+					return;
+				}
 				CurrentMontage = CombatMontage.Montage;
 				AnimInstance->Montage_Play(CombatMontage.Montage);
 

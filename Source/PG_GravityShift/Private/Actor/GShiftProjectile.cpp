@@ -31,15 +31,36 @@ void AGShiftProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (bSpawnTrail)
+	{
+		SpawnTrailSystem();
+	}
+
 	SetLifeSpan(LifeSpan);
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AGShiftProjectile::OnSphereOverlap);
 
+	if (Tracer)
+	{
+		TracerComponent = UGameplayStatics::SpawnEmitterAttached(Tracer, SphereComponent,
+			FName(), GetActorLocation(), GetActorRotation(), EAttachLocation::Type::KeepWorldPosition);
+	}
+
 	if (LoopingSound)
 	{
-		LoopingSoundComponent = UGameplayStatics::SpawnSoundAttached(LoopingSound, GetRootComponent());
+		LoopingSoundComponent = UGameplayStatics::SpawnSoundAttached(LoopingSound, GetRootComponent(), FName(),
+			GetActorLocation(), GetActorRotation(), EAttachLocation::Type::KeepWorldPosition, false);
 	}
 	
 
+}
+
+void AGShiftProjectile::SpawnTrailSystem()
+{
+	if (TrailSystem)
+	{
+		TrailSystemComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(TrailSystem, GetRootComponent(), FName(),
+			GetActorLocation(), GetActorRotation(), EAttachLocation::Type::KeepWorldPosition, false);
+	}
 }
 
 void AGShiftProjectile::Destroyed()
@@ -53,7 +74,7 @@ void AGShiftProjectile::Destroyed()
 	if (ImpactSound && ImpactEffect)
 	{
 		UGameplayStatics::SpawnSoundAtLocation(this, ImpactSound, GetActorLocation());
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactEffect, GetActorLocation());
+		UGameplayStatics::SpawnEmitterAtLocation(this, ImpactEffect, GetActorLocation());
 	}
 	
 	
