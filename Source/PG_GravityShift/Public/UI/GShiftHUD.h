@@ -6,12 +6,27 @@
 #include "GameFramework/HUD.h"
 #include "GShiftHUD.generated.h"
 
-/**
- * 
- */
+class UGShiftOverlay;
+
 UCLASS()
 class PG_GRAVITYSHIFT_API AGShiftHUD : public AHUD
 {
 	GENERATED_BODY()
+
+protected:
+
+	virtual void BeginPlay() override;
+
+private:
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGShiftOverlay> GShiftOverlayClass;
+
+	UPROPERTY()
+	TObjectPtr<UGShiftOverlay> GShiftOverlay;
+
+public:
+
+	FORCEINLINE UGShiftOverlay* GetGShiftOverlay() { return GShiftOverlay; }
 	
 };

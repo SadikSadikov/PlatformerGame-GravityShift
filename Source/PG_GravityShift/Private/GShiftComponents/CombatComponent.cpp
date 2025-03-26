@@ -19,6 +19,11 @@ UCombatComponent::UCombatComponent()
 	
 }
 
+float UCombatComponent::GetHealthPercent()
+{
+	return Health / MaxHealth;
+}
+
 void UCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -203,7 +208,7 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 		if (CurrentPunchTime > ComboThreshold && !bIsComboTimerResetting) 
 		{
 			bIsComboTimerResetting = true;
-			ResetComboWithDelay();
+			ResetCombo(EWeaponType::EWT_Hand);
 			print("Resetting Combo");
 		}
 	}
@@ -213,10 +218,10 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 
 void UCombatComponent::RangedAttack(EInputType InputType)
 {
-	if (bIsAttacking) return;
+	if (bIsAttacking || bIsRocketAttacking) return;
 	if (!GetOwner()->Implements<UCombatInterface>()) return;
 
-	FVector CombatLocation;
+	FVector CombatLocation = FVector::ZeroVector;
 	
 	if (CombatTarget)
 	{
@@ -235,12 +240,19 @@ void UCombatComponent::RangedAttack(EInputType InputType)
 
 	for (FCombatMontage CombatMontage : AttackMontages)
 	{
-		bIsAttacking = true;
 
 		if (InputType == CombatMontage.InputType)
 		{
 			if (CombatMontage.CombatType == ECombatType::ECT_Ranged)
 			{
+				
+				GetWorld()->GetTimerManager().SetTimer(RocketAttackTimerHandle, this, &UCombatComponent::RocketAttackFinished, RocketCooldown);
+				
+				OnAbilityUsedDelegate.Broadcast(CombatMontage.WeaponType, RocketCooldown);
+				
+				bIsAttacking = true;
+				bIsRocketAttacking = true;
+				
 				if (bNotUseMontageRangedAttack)
 				{
 					SpawnProjectile(CombatLocation, *CombatMontage.Sockets.Find(1));
@@ -275,8 +287,17 @@ void UCombatComponent::RangedAttack(EInputType InputType)
 	
 }
 
-void UCombatComponent::ResetCombo()
+void UCombatComponent::RocketAttackFinished()
 {
+	bIsRocketAttacking = false;
+	GetWorld()->GetTimerManager().ClearTimer(RocketAttackTimerHandle);
+}
+
+void UCombatComponent::ResetCombo(EWeaponType Type)
+{
+	GetWorld()->GetTimerManager().SetTimer(RocketAttackTimerHandle, this, &UCombatComponent::RocketAttackFinished, RocketCooldown);
+
+	OnAbilityUsedDelegate.Broadcast(Type, PunchCooldown);
 	CurrentComboCount = 0;
 	CurrentPunchTime = 0.f;
 }
@@ -286,14 +307,16 @@ void UCombatComponent::ResetComboWithDelay()
 
 	if (!GetWorld()->GetTimerManager().IsTimerActive(ComboResetTimer))
 	{
-		GetWorld()->GetTimerManager().SetTimer(ComboResetTimer, this, &UCombatComponent::ResetCombo, ComboResetTime);
+		//GetWorld()->GetTimerManager().SetTimer(ComboResetTimer, this, &UCombatComponent::ResetCombo, ComboResetTime);
 	}
 	
 }
 
+
+
 void UCombatComponent::MeleeAttack(EInputType InputType)
 {
-	if (bIsAttacking) return;
+	if (bIsAttacking || bIsRocketAttacking) return;
 	if (!GetOwner()->Implements<UCombatInterface>()) return;
 	
 	if (CombatTarget)
@@ -313,7 +336,7 @@ void UCombatComponent::MeleeAttack(EInputType InputType)
 	
 	if (CurrentComboCount < ComboMaxCount && CurrentPunchTime < ComboThreshold)
 	{
-		bIsAttacking = true;
+		
 		printf("Current Combo Count: %d", CurrentComboCount);
 		CurrentComboCount++;
 		CurrentPunchTime = 0.f;
@@ -324,6 +347,10 @@ void UCombatComponent::MeleeAttack(EInputType InputType)
 			{
 				if (CombatMontage.CombatType == ECombatType::ECT_Melee)
 				{
+				
+					OnAbilityUsedWithComboDelegate.Broadcast(CombatMontage.WeaponType, ComboThreshold, CurrentComboCount, ComboMaxCount);
+					
+					bIsAttacking = true;
 
 					CurrentMontage = CombatMontage.Montage;
 					AnimInstance->Montage_Play(CombatMontage.Montage);
@@ -367,10 +394,16 @@ void UCombatComponent::MeleeAttack(EInputType InputType)
 	}
 	else
 	{
-		ResetComboWithDelay();
+		ResetCombo(EWeaponType::EWT_Hand);
 	}
 
 	
+}
+
+void UCombatComponent::PunchAttackFinished()
+{
+	bIsRocketAttacking = false;
+	GetWorld()->GetTimerManager().ClearTimer(RocketAttackTimerHandle);
 }
 
 

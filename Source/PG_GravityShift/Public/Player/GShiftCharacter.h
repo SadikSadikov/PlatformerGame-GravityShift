@@ -7,6 +7,7 @@
 #include "Interaction/PlayerInterface.h"
 #include "GShiftCharacter.generated.h"
 
+class UGShiftOverlay;
 class AGShiftClimbMarker;
 class UInputMappingContext;
 class UInputAction;

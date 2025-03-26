@@ -28,4 +28,11 @@ void AGShiftPlayerController::OnToggleInGameMenu()
 
 void AGShiftPlayerController::SetupInputComponent()
 {
+	Super::SetupInputComponent();
 }
+
+void AGShiftPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+}
+

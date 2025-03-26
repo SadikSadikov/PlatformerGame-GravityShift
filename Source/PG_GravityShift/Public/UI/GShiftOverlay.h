@@ -6,12 +6,14 @@
 #include "Blueprint/UserWidget.h"
 #include "GShiftOverlay.generated.h"
 
-/**
- * 
- */
+class UProgressBar;
+
+
 UCLASS()
 class PG_GRAVITYSHIFT_API UGShiftOverlay : public UUserWidget
 {
 	GENERATED_BODY()
+
+public:
 	
 };

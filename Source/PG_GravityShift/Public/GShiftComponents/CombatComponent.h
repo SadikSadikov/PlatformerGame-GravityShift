@@ -14,6 +14,12 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnMontageEventReceivedSignature, EWeaponTyp
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHitReactSignature, bool, bHitReacting);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, OldValue, float, NewValue);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityUsedSignature, EWeaponType, Type, float, Cooldown);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnAbilityUsedWithComboSignature, EWeaponType, Type, float, Cooldown, int32, CurrentComboCount, int32, MaxComboCount);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PG_GRAVITYSHIFT_API UCombatComponent : public UActorComponent
 {
@@ -34,6 +40,15 @@ public:
 	void HitReact();
 
 	void Death();
+
+	UPROPERTY(BlueprintAssignable)
+	FOnHealthChangedSignature OnHealthChangedDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnAbilityUsedSignature OnAbilityUsedDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnAbilityUsedWithComboSignature OnAbilityUsedWithComboDelegate;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Config")
 	TArray<FCombatMontage> AttackMontages;
@@ -65,6 +80,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Config|HitReact")
 	bool bIsDead = false;
 
+
+	float GetHealthPercent();
 
 protected:
 
@@ -121,7 +138,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Config|Melee|Combo")
 	float MeleeDamageAmount = 15.f;
 
-	void ResetCombo();
+	void ResetCombo(EWeaponType Type);
 
 	void ResetComboWithDelay();
 
@@ -136,8 +153,26 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Config|RangedAttack")
 	bool bNotUseMontageRangedAttack = false;
-	
 
+	UPROPERTY(EditDefaultsOnly, Category = "Config|Melee")
+	float PunchCooldown = 1.5f;
+
+	void PunchAttackFinished();
+
+	bool bIsPunchAttacking = false;
+
+	FTimerHandle PunchAttackTimerHandle;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Config|RangedAttack")
+	float RocketCooldown = 2.f;
+
+	void RocketAttackFinished();
+
+	bool bIsRocketAttacking = false;
+
+	FTimerHandle RocketAttackTimerHandle;
+	
+	
 	
 	
 		

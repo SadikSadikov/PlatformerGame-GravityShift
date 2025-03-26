@@ -6,9 +6,6 @@
 #include "GameFramework/PlayerController.h"
 #include "GShiftPlayerController.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class PG_GRAVITYSHIFT_API AGShiftPlayerController : public APlayerController
 {
@@ -34,14 +31,18 @@ public:
 	void OnToggleInGameMenu();
 
 protected:
-
-	// TSharedPtr<>
+	
 
 	/* begin PlayerController Interface */
 
 	virtual void SetupInputComponent() override;
 
 	/* end PlayerController Interface */
+
+	virtual void BeginPlay() override;
+	
+
+	
 
 
 	

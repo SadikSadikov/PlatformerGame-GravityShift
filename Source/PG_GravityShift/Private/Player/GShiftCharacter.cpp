@@ -8,9 +8,12 @@
 #include "Actor/GShiftClimbMarker.h"
 #include "Components/CapsuleComponent.h"
 #include "GShiftComponents/CombatComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 #include "PG_GravityShift/PrintString.h"
+#include "UI/GShiftHUD.h"
+#include "UI/GShiftOverlay.h"
 
 AGShiftCharacter::AGShiftCharacter(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer.SetDefaultSubobjectClass<UGShiftCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -29,6 +32,7 @@ AGShiftCharacter::AGShiftCharacter(const FObjectInitializer& ObjectInitializer)
 void AGShiftCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
 
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(Cast<APlayerController>(GetController())->GetLocalPlayer()))
 	{
@@ -462,6 +466,12 @@ void AGShiftCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const c
 	class AController* InstigatedBy, AActor* DamageCauser)
 {
 	Super::ReceiveDamage(DamagedActor, Damage, DamageType, InstigatedBy, DamageCauser);
+
+	if (CombatComponent)
+	{
+		CombatComponent->OnHealthChangedDelegate.Broadcast(CombatComponent->Health + Damage,CombatComponent->Health);
+	}
+	
 
 	if (CombatComponent->bIsDead)
 	{
